@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Departamentos{% endblock %}
+{% block content %}
+<h1>Departamentos</h1>
+
+{% if session.get("rol") == "ADMIN" %}
+<h2>Crear Departamento</h2>
+<form method="post" action="{{ url_for('crear_departamento_web') }}">
+    <label>Nombre: <input type="text" name="nombre" required></label>
+    <label>ID Gerente (opcional): <input type="number" name="gerente_id" min="1"></label>
+    <button type="submit">Crear</button>
+</form>
+<hr>
+{% endif %}
+
+{% if session.get("rol") in ["ADMIN", "GERENTE"] %}
+<h2>Asignar / Quitar Empleado de Departamento</h2>
+<form method="post" action="{{ url_for('asignar_departamento_web') }}">
+    <label>Empleado:
+        <select name="empleado_id">
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}">{{ emp.nombre }} (ID {{ emp.id }})</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Departamento:
+        <select name="departamento_id">
+            {% for dep in departamentos %}
+            <option value="{{ dep.id }}">{{ dep.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Asignar</button>
+</form><br>
+
+<form method="post" action="{{ url_for('quitar_departamento_web') }}">
+    <label>Quitar a empleado:
+        <select name="empleado_id">
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}">{{ emp.nombre }} (ID {{ emp.id }})</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Quitar departamento</button>
+</form>
+<hr>
+{% endif %}
+
+<h2>Listado de Departamentos</h2>
+{% for item in detalle_deps %}
+<h3>{{ item.dep.nombre }} (ID: {{ item.dep.id }} | Gerente ID: {{ item.dep.gerente or "Ninguno" }})</h3>
+<ul>
+    {% for emp in item.empleados %}
+    <li>{{ emp.nombre }} ({{ emp.correo }})</li>
+    {% else %}
+    <li><em>Sin empleados asignados</em></li>
+    {% endfor %}
+</ul>
+{% endfor %}
+{% endblock %}

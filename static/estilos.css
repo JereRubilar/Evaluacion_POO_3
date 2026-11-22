@@ -1,0 +1,232 @@
+:root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --nav-bg: #1e293b;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+nav {
+    background-color: var(--nav-bg);
+    color: #f8fafc;
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+nav span {
+    font-weight: 600;
+    color: #93c5fd;
+    margin-right: auto;
+}
+
+nav a {
+    color: #e2e8f0;
+    text-decoration: none;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    transition: background-color 0.15s;
+}
+
+nav a:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+main {
+    max-width: 1050px;
+    margin: 2rem auto;
+    padding: 1.75rem 2rem;
+    background-color: var(--surface);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+h1 {
+    margin-top: 0;
+    font-size: 1.65rem;
+    border-bottom: 2px solid var(--bg);
+    padding-bottom: 0.5rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    color: #334155;
+}
+
+h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #e2e8f0;
+    margin: 1.5rem 0;
+}
+
+body>ul {
+    list-style: none;
+    max-width: 1050px;
+    margin: 1rem auto 0;
+    padding: 0;
+}
+
+body>ul li {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.flash-success {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.flash-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.flash-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.flash-info {
+    background-color: #e0f2fe;
+    color: #075985;
+    border: 1px solid #7dd3fc;
+}
+
+form label {
+    display: inline-block;
+    font-weight: 500;
+    font-size: 0.92rem;
+    margin-right: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+select {
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.92rem;
+    background-color: #fff;
+    margin-left: 0.25rem;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+fieldset {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    background-color: #f8fafc;
+}
+
+legend {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--muted);
+    padding: 0 0.4rem;
+}
+
+button {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+button:hover {
+    background-color: var(--primary-hover);
+}
+
+table button {
+    background-color: var(--danger);
+    padding: 0.3rem 0.65rem;
+    font-size: 0.85rem;
+}
+
+table button:hover {
+    background-color: var(--danger-hover);
+}
+
+main a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+main a:hover {
+    text-decoration: underline;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.92rem;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid #e2e8f0;
+    border-left: none;
+    border-right: none;
+}
+
+th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #334155;
+}
+
+tbody tr:hover {
+    background-color: #f8fafc;
+}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Crear Empleado{% endblock %}
+{% block content %}
+<h1>Registrar Empleado o Gerente</h1>
+<form method="post">
+    <label>Tipo:
+        <select name="tipo" id="tipo">
+            <option value="E">Empleado (E)</option>
+            <option value="G">Gerente (G)</option>
+        </select>
+    </label><br><br>
+
+    <label>Nombre: <input type="text" name="nombre" required></label><br><br>
+    <label>Dirección: <input type="text" name="direccion"></label><br><br>
+    <label>Teléfono: <input type="text" name="telefono"></label><br><br>
+    <label>Correo: <input type="email" name="correo" required></label><br><br>
+    <label>Inicio de contrato: <input type="date" name="fecha_inicio_contrato" required></label><br><br>
+    <label>Salario: <input type="number" step="0.01" name="salario" required></label><br><br>
+
+    <label>Departamento inicial:
+        <select name="departamento_id">
+            <option value="">-- Sin asignar --</option>
+            {% for dep in departamentos %}
+            <option value="{{ dep.id }}">{{ dep.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label><br><br>
+
+    <fieldset>
+        <legend>Solo si es Gerente (G)</legend>
+        <label>Presupuesto asignado: <input type="number" step="0.01" name="presupuesto_asignado"></label><br><br>
+        <label>Nivel de autorización: <input type="number" min="1" name="nivel_autorizacion"></label>
+    </fieldset><br>
+
+    <button type="submit">Guardar</button>
+</form>
+{% endblock %}

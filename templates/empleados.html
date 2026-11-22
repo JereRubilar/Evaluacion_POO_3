@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Empleados{% endblock %}
+{% block content %}
+<h1>Empleados</h1>
+{% if session.get("rol") == "ADMIN" %}
+<p><a href="{{ url_for('crear_empleado_web') }}">+ Nuevo Empleado / Gerente</a></p>
+{% endif %}
+
+<table cellpadding="6">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Teléfono</th>
+            <th>Salario</th>
+            <th>Tipo</th>
+            {% if session.get("rol") == "ADMIN" %}
+            <th>Acciones</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for emp in empleados %}
+        <tr>
+            <td>{{ emp.id }}</td>
+            <td>{{ emp.nombre }}</td>
+            <td>{{ emp.correo }}</td>
+            <td>{{ emp.telefono or "-" }}</td>
+            <td>{{ emp.salario }}</td>
+            <td>{{ "Gerente" if emp.presupuesto_asignado is defined else "Empleado" }}</td>
+            {% if session.get("rol") == "ADMIN" %}
+            <td>
+                <form method="post" action="{{ url_for('eliminar_empleado_web', empleado_id=emp.id) }}"
+                    style="display:inline;">
+                    <button type="submit" onclick="return confirm('¿Eliminar este empleado?')">Eliminar</button>
+                </form>
+            </td>
+            {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No hay empleados registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

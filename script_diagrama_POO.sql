@@ -7,8 +7,8 @@ CREATE SCHEMA `gestion_empleados`
     COLLATE utf8mb4_unicode_ci;
 
 -- Creación de usuario para conectar con programa (importante cambiar las credenciales) --
-CREATE USER 'admin_RRHH'@'localhost' IDENTIFIED BY 'AdminRRHH123';
-GRANT ALL PRIVILEGES ON sistema_gestion.* TO 'admin_RRHH'@'localhost';
+CREATE USER 'admin_BBDD'@'localhost' IDENTIFIED BY 'AdminBBDD123';
+GRANT ALL PRIVILEGES ON gestion_empleados.* TO 'admin_BBDD'@'localhost';
 
 
 USE `gestion_empleados`;
@@ -49,6 +49,22 @@ CREATE TABLE `gerente` (
     `nivel_autorizacion`   INT NOT NULL DEFAULT 1,
     PRIMARY KEY (`empleado_id`),
     CONSTRAINT `fk_gerente_empleado`
+        FOREIGN KEY (`empleado_id`) REFERENCES `empleado` (`id`)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+) ENGINE = InnoDB;
+
+CREATE TABLE `usuario` (
+    `id`            INT                                NOT NULL AUTO_INCREMENT,
+    `empleado_id`   INT                                NOT NULL,
+    `username`      VARCHAR(50)                        NOT NULL,
+    `password_hash` VARCHAR(255)                       NOT NULL,
+    `rol`           ENUM('ADMIN', 'GERENTE', 'EMPLEADO') NOT NULL DEFAULT 'EMPLEADO',
+    `activo`        TINYINT(1)                         NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_usuario_empleado` (`empleado_id`),
+    UNIQUE KEY `uq_usuario_username` (`username`),
+    CONSTRAINT `fk_usuario_empleado`
         FOREIGN KEY (`empleado_id`) REFERENCES `empleado` (`id`)
         ON UPDATE CASCADE
         ON DELETE CASCADE
@@ -139,11 +155,11 @@ INSERT INTO `proyecto` (`id`, `nombre`, `descripcion`, `fecha_inicio`) VALUES
 
 
 INSERT INTO `empleado_proyecto` (`empleado_id`, `proyecto_id`) VALUES
-(1, 1), -- Carlos Pérez en E-Commerce
-(2, 3), -- Ana Gómez en Portal de Clientes
-(3, 2), -- Luis Soto en Migración Cloud
-(4, 1), -- María Silva en E-Commerce
-(5, 2); -- Jorge Rivas en Migración Cloud
+(1, 1),
+(2, 3), 
+(3, 2), 
+(4, 1), 
+(5, 2);
 
 INSERT INTO `registro_tiempo` (`id`, `fecha`, `horas_trabajadas`, `descripcion`, `empleado_id`, `proyecto_id`) VALUES
 (1, '2026-10-01 10:00:00', 8, 'Configuración inicial del repositorio y base de datos', 1, 1),

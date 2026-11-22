@@ -16,9 +16,6 @@ class Empleado(ABC):
         if not self.nombre or "@" not in self.correo:
             raise ValueError("nombre y correo válido son obligatorios.")
 
-    def registrar_horas(self):
-        pass
-
     def __str__(self):
         return f"[ID: {self.id}] Nombre: {self.nombre} - Dirección: {self.direccion} - Telefono {self.telefono} - Correo: {self.correo} - Salario: {self.salario} - Inicio de contrato: {self.fecha_inicio_contrato}\n"
 
@@ -28,9 +25,6 @@ class Gerente(Empleado):
         super().__init__(nombre, direccion, telefono, correo, fecha_inicio_contrato, salario, empleado_id)
         self.presupuesto_asignado = presupuesto_asignado
         self.nivel_autorizacion = nivel_autorizacion
-
-    def crear_departamento():
-        pass
 
     def __str__(self):
         return f"[ID: {self.id}] Nombre: {self.nombre} - Dirección: {self.direccion} - Telefono {self.telefono} - Correo: {self.correo} - Salario: {self.salario} - Inicio de contrato: {self.fecha_inicio_contrato} - Presupuesto: {self.presupuesto_asignado} - Nivel de autorizacion: {self.nivel_autorizacion}\n"
@@ -43,16 +37,6 @@ class Departamento(ABC):
         self.gerente = gerente
         self.empleados = empleados
         
-
-    def asignar_empleado(self):
-        pass
-
-    def quitar_empleado():
-        pass
-
-    def cambiar_empleado():
-        pass
-
     def __str__(self):
         return f"\n[ID: {self.id}] Nombre: {self.nombre} - Gerente: {self.gerente} - Empleados:"
 
@@ -64,12 +48,6 @@ class Proyecto(ABC):
         self.descripcion= descripcion
         self.fecha_inicio = fecha_inicio
         self.empleados = empleados if empleados is not None else []
-
-    def asignar_empleado():
-        pass
-
-    def desasignar_empleado():
-        pass
 
     def __str__(self):
         return f"\n[ID: {self.id}] Nombre: {self.nombre} - Descripción: {self.descripcion} - Fecha de inicio: {self.fecha_inicio}"
@@ -86,3 +64,16 @@ class RegistroTiempo(ABC):
 
     def __str__(self):
         return f"[ID: {self.id}] Fecha: {self.fecha} - Horas_trabajadas: {self.horas_trabajadas} - Descripción: {self.descripcion} - Empleado: {self.empleado} - Proyecto: {self.proyecto}\n"
+
+class Usuario:
+    def __init__(self, empleado_id, username, rol="EMPLEADO", activo=True, password_hash=None, usuario_id=None):
+        self.id = usuario_id
+        self.empleado_id = empleado_id
+        self.username = username
+        self.rol = rol
+        self.activo = activo
+        self.password_hash = password_hash
+
+    def __str__(self):
+        estado = "Activo" if self.activo else "Inactivo"
+        return f"[ID: {self.id}] Usuario: {self.username} - Rol: {self.rol} - Empleado ID: {self.empleado_id} ({estado})"

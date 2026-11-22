@@ -247,3 +247,38 @@ class RegistroTiempoRepositorio:
                 return fila[0] if fila and fila[0] is not None else 0
             finally:
                 cur.close()
+
+class PermisosRepositorio:
+    def ids_empleados_a_cargo(self, gerente_empleado_id):
+        """Retorna el set de IDs de empleados en departamentos liderados por el gerente."""
+        with conexion() as cn:
+            cur = cn.cursor()
+            try:
+                sql = """
+                    SELECT DISTINCT e.id
+                    FROM empleado e
+                    JOIN departamento d ON e.departamento_id = d.id
+                    WHERE d.gerente_id = %s
+                """
+                cur.execute(sql, (gerente_empleado_id,))
+                return {fila[0] for fila in cur.fetchall()}
+            finally:
+                cur.close()
+
+    def ids_proyectos_de_empleado(self, empleado_id):
+        """Retorna el set de IDs de proyectos donde participa el empleado."""
+        with conexion() as cn:
+            cur = cn.cursor()
+            try:
+                sql = """
+                    SELECT DISTINCT proyecto_id
+                    FROM empleado_proyecto
+                    WHERE empleado_id = %s
+                """
+                cur.execute(sql, (empleado_id,))
+                return {fila[0] for fila in cur.fetchall()}
+            finally:
+                cur.close()
+
+    def puede_gestionar_empleado_como_gerente(self, gerente_empleado_id, objetivo_empleado_id):
+        return objetivo_empleado_id in self.ids_empleados_a_cargo(gerente_empleado_id)

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Registros de Tiempo{% endblock %}
+{% block content %}
+<h1>Registros de Tiempo</h1>
+
+<h2>Registrar Horas</h2>
+<form method="post">
+    <label>Fecha: <input type="date" name="fecha" required></label>
+    <label>Horas trabajadas: <input type="number" step="0.5" min="0" name="horas_trabajadas" required></label><br><br>
+
+    <label>Proyecto:
+        <select name="proyecto_id" required>
+            {% for proy in proyectos %}
+            <option value="{{ proy.id }}">{{ proy.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    {% if session.get("rol") in ["ADMIN", "GERENTE"] %}
+    <label>Empleado:
+        <select name="empleado_id" required>
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}" {% if emp.id==consulta_emp_id %}selected{% endif %}>
+                {{ emp.nombre }} (ID {{ emp.id }})
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    {% endif %}<br><br>
+
+    <label>Descripción: <input type="text" name="descripcion" size="50" required></label>
+    <button type="submit">Registrar</button>
+</form>
+
+<hr>
+
+<h2>Consultar Registros</h2>
+{% if session.get("rol") in ["ADMIN", "GERENTE"] %}
+<form method="get">
+    <label>Ver registros de:
+        <select name="empleado_id" onchange="this.form.submit()">
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}" {% if emp.id==consulta_emp_id %}selected{% endif %}>
+                {{ emp.nombre }} (ID {{ emp.id }})
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+</form><br>
+{% endif %}
+
+<table cellpadding="6">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Horas</th>
+            <th>Descripción</th>
+            <th>ID Proyecto</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for reg in registros %}
+        <tr>
+            <td>{{ reg.id }}</td>
+            <td>{{ reg.fecha }}</td>
+            <td>{{ reg.horas_trabajadas }}</td>
+            <td>{{ reg.descripcion }}</td>
+            <td>{{ reg.proyecto }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No hay registros de tiempo para mostrar.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

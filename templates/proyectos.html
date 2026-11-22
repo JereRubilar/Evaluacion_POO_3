@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Proyectos{% endblock %}
+{% block content %}
+<h1>Proyectos</h1>
+
+{% if session.get("rol") == "ADMIN" %}
+<h2>Crear Proyecto</h2>
+<form method="post" action="{{ url_for('crear_proyecto_web') }}">
+    <label>Nombre: <input type="text" name="nombre" required></label>
+    <label>Fecha de inicio: <input type="date" name="fecha_inicio" required></label><br><br>
+    <label>Descripción: <input type="text" name="descripcion" size="50"></label>
+    <button type="submit">Crear proyecto</button>
+</form>
+<hr>
+{% endif %}
+
+{% if session.get("rol") in ["ADMIN", "GERENTE"] %}
+<h2>Asignar / Desasignar Empleado a Proyecto</h2>
+<form method="post" action="{{ url_for('asignar_proyecto_web') }}">
+    <label>Empleado:
+        <select name="empleado_id">
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}">{{ emp.nombre }} (ID {{ emp.id }})</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Proyecto:
+        <select name="proyecto_id">
+            {% for proy in proyectos %}
+            <option value="{{ proy.id }}">{{ proy.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Asignar</button>
+</form><br>
+
+<form method="post" action="{{ url_for('desasignar_proyecto_web') }}">
+    <label>Empleado:
+        <select name="empleado_id">
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}">{{ emp.nombre }} (ID {{ emp.id }})</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Proyecto:
+        <select name="proyecto_id">
+            {% for proy in proyectos %}
+            <option value="{{ proy.id }}">{{ proy.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Desasignar</button>
+</form>
+<hr>
+{% endif %}
+
+<h2>Listado de Proyectos</h2>
+{% for item in detalle_proys %}
+<h3>{{ item.proyecto.nombre }} (ID: {{ item.proyecto.id }})</h3>
+<p>{{ item.proyecto.descripcion or "Sin descripción" }} — <strong>Inicio:</strong> {{ item.proyecto.fecha_inicio }}</p>
+<p><strong>Total horas registradas:</strong> {{ item.total_horas }} horas</p>
+<p><strong>Empleados asignados:</strong></p>
+<ul>
+    {% for emp in item.empleados %}
+    <li>{{ emp.nombre }} ({{ emp.correo }})</li>
+    {% else %}
+    <li><em>Sin empleados asignados</em></li>
+    {% endfor %}
+</ul>
+<hr>
+{% else %}
+<p>No hay proyectos registrados.</p>
+{% endfor %}
+{% endblock %}

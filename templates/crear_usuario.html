@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Crear Cuenta de Usuario{% endblock %}
+{% block content %}
+<h1>Crear Cuenta de Usuario</h1>
+<form method="post">
+    <label>Empleado:
+        <select name="empleado_id" required>
+            {% for emp in empleados %}
+            <option value="{{ emp.id }}">{{ emp.nombre }} ({{ emp.correo }})</option>
+            {% endfor %}
+        </select>
+    </label><br><br>
+
+    <label>Nombre de usuario: <input type="text" name="username" required></label><br><br>
+    <label>Contraseña: <input type="password" name="password" required></label><br><br>
+
+    <label>Rol:
+        <select name="rol">
+            <option value="EMPLEADO">EMPLEADO</option>
+            <option value="GERENTE">GERENTE</option>
+            <option value="ADMIN">ADMIN</option>
+        </select>
+    </label><br><br>
+
+    <button type="submit">Crear cuenta</button>
+</form>
+{% endblock %}

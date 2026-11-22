@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Gestión de Empleados{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+</head>
+
+<body>
+    <nav>
+        {% if session.get("usuario_id") %}
+        {% set rol = session.get("rol") %}
+        <span>{{ session.get("nombre") }} ({{ rol }})</span>
+        <a href="{{ url_for('dashboard') }}">Inicio</a>
+
+        {% if rol == "ADMIN" %}
+        <a href="{{ url_for('listar_empleados') }}">Empleados</a>
+        <a href="{{ url_for('listar_departamentos_web') }}">Departamentos</a>
+        <a href="{{ url_for('listar_proyectos_web') }}">Proyectos</a>
+        <a href="{{ url_for('gestion_horas_web') }}">Horas</a>
+        <a href="{{ url_for('nuevo_usuario') }}">Crear Usuario</a>
+
+        {% elif rol == "GERENTE" %}
+        <a href="{{ url_for('listar_departamentos_web') }}">Mi Equipo / Deptos</a>
+        <a href="{{ url_for('listar_proyectos_web') }}">Proyectos a Cargo</a>
+        <a href="{{ url_for('gestion_horas_web') }}">Control de Horas</a>
+
+        {% elif rol == "EMPLEADO" %}
+        <a href="{{ url_for('listar_proyectos_web') }}">Mis Proyectos</a>
+        <a href="{{ url_for('gestion_horas_web') }}">Mis Horas</a>
+        {% endif %}
+
+        <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+        {% endif %}
+    </nav>
+
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% if mensajes %}
+    <ul>
+        {% for categoria, msg in mensajes %}
+        <li class="flash-{{ categoria }}">{{ msg }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>
