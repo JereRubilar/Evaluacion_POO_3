@@ -13,6 +13,7 @@ from repositorios import (
     PermisosRepositorio,
     ProyectoRepositorio,
     RegistroTiempoRepositorio,
+    UsuarioRepositorio
 )
 from servicios_externos import (
     ServicioExternoError,
@@ -24,6 +25,7 @@ from servicios_externos import (
 
 load_dotenv()
 
+ROLES_VALIDOS = {"ADMIN", "GERENTE", "EMPLEADO"}
 
 def crear_app():
     app = Flask(__name__)
@@ -35,6 +37,7 @@ def crear_app():
     proy_repo = ProyectoRepositorio()
     horas_repo = RegistroTiempoRepositorio()
     perm_repo = PermisosRepositorio()
+    usuario_repo=UsuarioRepositorio()
 
     @app.route("/")
     def index():
@@ -107,19 +110,16 @@ def crear_app():
 
             elif accion == "moneda":
                 monto = request.form.get("monto", "").strip()
-                origen = request.form.get("moneda_origen", "CLP").strip().upper()
-                destino = request.form.get("moneda_destino", "USD").strip().upper()
+                origen = request.form.get("moneda_origen", "USD").strip().upper()
+                destino = request.form.get("moneda_destino", "CLP").strip().upper()
                 form_moneda = {"monto": monto, "origen": origen, "destino": destino}
 
-                if resultado_moneda is None:
-                    try:
-                        resultado_moneda = convertir_moneda(
-                            form_moneda["monto"],
-                            form_moneda["origen"],
-                            form_moneda["destino"],
-                        )
-                    except ServicioExternoError:
-                        resultado_moneda = None
+                try:
+                    resultado_moneda = convertir_moneda(monto, origen, destino)
+                except ServicioExternoError as exc:
+                    flash(str(exc), "error")
+                except Exception:
+                    flash("Ocurrió un error inesperado al convertir la moneda.", "error")
 
         if resultado_clima is None:
             try:
@@ -144,33 +144,37 @@ def crear_app():
             form_moneda=form_moneda,
         )
 
+
     @app.route("/usuarios/nuevo", methods=["GET", "POST"])
     @rol_requerido("ADMIN")
     def nuevo_usuario():
-        with conexion() as cn:
-            cur = cn.cursor(dictionary=True)
-            try:
-                cur.execute("SELECT id, nombre, correo FROM empleado ORDER BY nombre")
-                empleados = cur.fetchall()
-            finally:
-                cur.close()
+        empleados = usuario_repo.listar_empleados_para_cuenta()
 
         if request.method == "POST":
-            empleado_id = request.form.get("empleado_id", "").strip()
+            empleado_id_str = request.form.get("empleado_id", "").strip()
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "")
-            rol = request.form.get("rol", "EMPLEADO").strip()
+            rol = request.form.get("rol", "EMPLEADO").strip().upper()
 
-            if not empleado_id or not username or not password:
+            if not empleado_id_str or not username or not password:
                 flash("Completa todos los campos obligatorios.", "error")
                 return render_template("crear_usuario.html", empleados=empleados)
 
+            if rol not in ROLES_VALIDOS:
+                flash("El rol seleccionado no es válido.", "error")
+                return render_template("crear_usuario.html", empleados=empleados)
+
             try:
-                crear_cuenta_usuario(int(empleado_id), username, password, rol)
+                empleado_id_num = int(empleado_id_str)
+                if empleado_id_num < 1:
+                    raise ValueError("El empleado seleccionado no es válido.")
+                usuario_repo.crear_cuenta(empleado_id_num, username, password, rol)
                 flash(f"Cuenta '{username}' creada con rol {rol}.", "success")
                 return redirect(url_for("dashboard"))
-            except Exception as exc:
-                flash(f"No se pudo crear la cuenta: {exc}", "error")
+            except ValueError as exc:
+                flash(str(exc), "error")
+            except Exception:
+                flash("No se pudo crear la cuenta. Verifica que el usuario o empleado no estén ya registrados.", "error")
 
         return render_template("crear_usuario.html", empleados=empleados)
 
@@ -229,10 +233,12 @@ def crear_app():
                 emp_repo.crear(nuevo)
                 flash(f"Empleado registrado con ID {nuevo.id}.", "success")
                 return redirect(url_for("listar_empleados"))
-            except Exception as exc:
-                flash(f"No se pudo crear el empleado: {exc}", "error")
+            except ValueError as exc:
+                flash(str(exc), "error")
+            except Exception:
+                flash("No se pudo crear el empleado. Revisa los datos ingresados (por ejemplo, que el correo no exista).", "error")
 
-        return render_template("crear_empleado.html", departamentos=departamentos)
+        return render_template("crear_empleados.html", departamentos=departamentos)
 
     @app.route("/empleados/<int:empleado_id>/eliminar", methods=["POST"])
     @rol_requerido("ADMIN")
@@ -240,8 +246,8 @@ def crear_app():
         try:
             emp_repo.eliminar(empleado_id)
             flash("Empleado eliminado.", "success")
-        except Exception as exc:
-            flash(f"No se pudo eliminar: {exc}", "error")
+        except Exception:
+            flash("No se pudo eliminar el empleado.", "error")
         return redirect(url_for("listar_empleados"))
 
     @app.route("/departamentos")
@@ -287,8 +293,10 @@ def crear_app():
             gerente_id = int(gerente_str) if gerente_str else None
             dep = dep_repo.crear(nombre, gerente_id)
             flash(f"Departamento '{dep.nombre}' creado (ID {dep.id}).", "success")
-        except Exception as exc:
-            flash(f"Error al crear departamento: {exc}", "error")
+        except ValueError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo crear el departamento.", "error")
         return redirect(url_for("listar_departamentos_web"))
 
     @app.route("/departamentos/asignar", methods=["POST"])
@@ -303,8 +311,10 @@ def crear_app():
                 raise PermissionError("Solo puedes gestionar empleados bajo tu cargo.")
             dep_repo.asignar_empleado(dep_id, emp_id)
             flash("Empleado asignado al departamento.", "success")
-        except Exception as exc:
-            flash(f"Error al asignar: {exc}", "error")
+        except PermissionError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo actualizar el departamento del empleado.", "error")
         return redirect(url_for("listar_departamentos_web"))
 
     @app.route("/departamentos/quitar", methods=["POST"])
@@ -318,8 +328,10 @@ def crear_app():
                 raise PermissionError("Solo puedes gestionar empleados bajo tu cargo.")
             dep_repo.quitar_empleado(None, emp_id)
             flash("Empleado quitado del departamento.", "success")
-        except Exception as exc:
-            flash(f"Error al quitar del departamento: {exc}", "error")
+        except PermissionError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo actualizar el departamento del empleado.", "error")
         return redirect(url_for("listar_departamentos_web"))
 
     @app.route("/proyectos")
@@ -374,8 +386,10 @@ def crear_app():
             proyecto = Proyecto(nombre, descripcion, fecha_fmt)
             proy_repo.crear(proyecto)
             flash(f"Proyecto '{proyecto.nombre}' creado con ID {proyecto.id}.", "success")
-        except Exception as exc:
-            flash(f"No se pudo crear el proyecto: {exc}", "error")
+        except ValueError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo crear el proyecto.", "error")
         return redirect(url_for("listar_proyectos_web"))
 
     @app.route("/proyectos/asignar", methods=["POST"])
@@ -390,8 +404,10 @@ def crear_app():
                 raise PermissionError("Solo puedes asignar empleados bajo tu cargo.")
             proy_repo.asignar_empleado(proy_id, emp_id)
             flash("Empleado asignado al proyecto.", "success")
-        except Exception as exc:
-            flash(f"No se pudo asignar al proyecto: {exc}", "error")
+        except PermissionError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo actualizar la asignación del proyecto.", "error")
         return redirect(url_for("listar_proyectos_web"))
 
     @app.route("/proyectos/desasignar", methods=["POST"])
@@ -406,8 +422,10 @@ def crear_app():
                 raise PermissionError("Solo puedes desasignar empleados bajo tu cargo.")
             proy_repo.desasignar_empleado(proy_id, emp_id)
             flash("Empleado desasignado del proyecto.", "success")
-        except Exception as exc:
-            flash(f"No se pudo desasignar del proyecto: {exc}", "error")
+        except PermissionError as exc:
+            flash(str(exc), "error")
+        except Exception:
+            flash("No se pudo actualizar la asignación del proyecto.", "error")
         return redirect(url_for("listar_proyectos_web"))
 
     @app.route("/horas", methods=["GET", "POST"])
@@ -456,8 +474,10 @@ def crear_app():
                 horas_repo.registrar(registro)
                 flash(f"Horas registradas con ID {registro.id}.", "success")
                 return redirect(url_for("gestion_horas_web", empleado_id=emp_id))
-            except Exception as exc:
-                flash(f"Error al registrar horas: {exc}", "error")
+            except (ValueError, PermissionError) as exc:
+                flash(str(exc), "error")
+            except Exception:
+                flash("No se pudo registrar las horas.", "error")
 
         if rol_actual == "EMPLEADO":
             consulta_emp_id = emp_sesion_id

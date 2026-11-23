@@ -282,3 +282,46 @@ class PermisosRepositorio:
 
     def puede_gestionar_empleado_como_gerente(self, gerente_empleado_id, objetivo_empleado_id):
         return objetivo_empleado_id in self.ids_empleados_a_cargo(gerente_empleado_id)
+
+class UsuarioRepositorio:
+    def obtener_por_username(self, username):
+        with conexion() as cn:
+            cur = cn.cursor(dictionary=True)
+            try:
+                sql = """
+                    SELECT u.id, u.empleado_id, u.username, u.password_hash, u.rol, u.activo, e.nombre
+                    FROM usuario u
+                    JOIN empleado e ON u.empleado_id = e.id
+                    WHERE u.username = %s
+                """
+                cur.execute(sql, (username,))
+                return cur.fetchone()
+            finally:
+                cur.close()
+
+    def crear_cuenta(self, empleado_id, username, password_plana, rol):
+        password_hash = generate_password_hash(password_plana)
+        with conexion() as cn:
+            cur = cn.cursor()
+            try:
+                sql = """
+                    INSERT INTO usuario (empleado_id, username, password_hash, rol, activo)
+                    VALUES (%s, %s, %s, %s, 1)
+                """
+                cur.execute(sql, (empleado_id, username, password_hash, rol))
+                cn.commit()
+                return cur.lastrowid
+            except Exception as e:
+                cn.rollback()
+                raise e
+            finally:
+                cur.close()
+
+    def listar_empleados_para_cuenta(self):
+        with conexion() as cn:
+            cur = cn.cursor(dictionary=True)
+            try:
+                cur.execute("SELECT id, nombre, correo FROM empleado ORDER BY nombre")
+                return cur.fetchall()
+            finally:
+                cur.close()
