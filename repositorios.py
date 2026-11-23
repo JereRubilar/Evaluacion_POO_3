@@ -1,8 +1,10 @@
 from modelos import Empleado, Gerente, Departamento, Proyecto, RegistroTiempo
+from werkzeug.security import generate_password_hash
 from conexiones import conexion
 
 class EmpleadoRepositorio:
     def crear(self, empleado):
+        empleado.validar()
         with conexion() as cn:
             cur = cn.cursor()
             try:
@@ -79,14 +81,32 @@ class EmpleadoRepositorio:
 
 class DepartamentoRepositorio:
     def crear(self, nombre, gerente_id):
+        nombre_limpio = (nombre or "").strip()
+        if not nombre_limpio:
+            raise ValueError("El nombre del departamento es obligatorio.")
+
+        gerente_id_limpio = gerente_id if gerente_id not in (None, "") else None
+
         with conexion() as cn:
             cur = cn.cursor()
             try:
+                if gerente_id_limpio is not None:
+                    cur.execute("SELECT 1 FROM gerente WHERE empleado_id = %s", (gerente_id_limpio,))
+                    if not cur.fetchone():
+                        raise ValueError("El ID indicado no corresponde a un gerente registrado.")
+
                 sql = "INSERT INTO departamento (nombre, gerente_id) VALUES (%s, %s)"
-                cur.execute(sql, (nombre, gerente_id if gerente_id else None))
-                cn.commit()
+                cur.execute(sql, (nombre_limpio, gerente_id_limpio))
                 dep_id = cur.lastrowid
-                return Departamento(nombre, gerente_id, [], dep_id)
+
+                if gerente_id_limpio is not None:
+                    cur.execute(
+                        "UPDATE empleado SET departamento_id = %s WHERE id = %s",
+                        (dep_id, gerente_id_limpio),
+                    )
+
+                cn.commit()
+                return Departamento(nombre_limpio, gerente_id_limpio, [], dep_id)
             except Exception as e:
                 cn.rollback()
                 raise e

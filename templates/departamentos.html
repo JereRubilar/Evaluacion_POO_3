@@ -34,14 +34,16 @@
 </form><br>
 
 <form method="post" action="{{ url_for('quitar_departamento_web') }}">
-    <label>Quitar a empleado:
+    <label>Quitar a empleado de su departamento actual:
         <select name="empleado_id">
             {% for emp in empleados %}
-            <option value="{{ emp.id }}">{{ emp.nombre }} (ID {{ emp.id }})</option>
+            <option value="{{ emp.id }}">
+                {{ emp.nombre }} (ID {{ emp.id }})
+            </option>
             {% endfor %}
         </select>
     </label>
-    <button type="submit">Quitar departamento</button>
+    <button type="submit">Quitar del departamento</button>
 </form>
 <hr>
 {% endif %}

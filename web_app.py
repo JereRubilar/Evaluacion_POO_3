@@ -233,9 +233,11 @@ def crear_app():
                 emp_repo.crear(nuevo)
                 flash(f"Empleado registrado con ID {nuevo.id}.", "success")
                 return redirect(url_for("listar_empleados"))
+            
             except ValueError as exc:
                 flash(str(exc), "error")
-            except Exception:
+            except Exception as exc:
+                app.logger.exception("Error al crear empleado: %s", exc)
                 flash("No se pudo crear el empleado. Revisa los datos ingresados (por ejemplo, que el correo no exista).", "error")
 
         return render_template("crear_empleados.html", departamentos=departamentos)
@@ -321,14 +323,21 @@ def crear_app():
     @rol_requerido("ADMIN", "GERENTE")
     def quitar_departamento_web():
         try:
-            emp_id = int(request.form.get("empleado_id"))
+            emp_id_str = (request.form.get("empleado_id") or "").strip()
+            if not emp_id_str:
+                raise ValueError("Debes seleccionar un empleado.")
+            emp_id = int(emp_id_str)
+            if emp_id < 1:
+                raise ValueError("El empleado seleccionado no es válido.")
+
             if session.get("rol") == "GERENTE" and not perm_repo.puede_gestionar_empleado_como_gerente(
                 int(session.get("empleado_id")), emp_id
             ):
                 raise PermissionError("Solo puedes gestionar empleados bajo tu cargo.")
+
             dep_repo.quitar_empleado(None, emp_id)
             flash("Empleado quitado del departamento.", "success")
-        except PermissionError as exc:
+        except (ValueError, PermissionError) as exc:
             flash(str(exc), "error")
         except Exception:
             flash("No se pudo actualizar el departamento del empleado.", "error")
@@ -453,21 +462,37 @@ def crear_app():
         if request.method == "POST":
             try:
                 fecha_str = request.form.get("fecha", "").strip()
-                horas_val = float(request.form.get("horas_trabajadas", "0").replace(",", ".").strip())
+                horas_str = request.form.get("horas_trabajadas", "").replace(",", ".").strip()
                 descripcion = request.form.get("descripcion", "").strip()
-                proy_id = int(request.form.get("proyecto_id"))
+                proy_id_str = request.form.get("proyecto_id", "").strip()
+
+                if not fecha_str or not horas_str or not descripcion or not proy_id_str:
+                    raise ValueError("Completa fecha, horas, proyecto y descripción.")
+
+                horas_val = float(horas_str)
+                if horas_val <= 0:
+                    raise ValueError("Las horas trabajadas deben ser mayores que cero.")
+
+                proy_id = int(proy_id_str)
+                if proy_id < 1:
+                    raise ValueError("El proyecto seleccionado no es válido.")
 
                 if rol_actual == "EMPLEADO":
                     emp_id = emp_sesion_id
                 else:
-                    emp_id = int(request.form.get("empleado_id"))
+                    emp_id_str = request.form.get("empleado_id", "").strip()
+                    if not emp_id_str:
+                        raise ValueError("Debes seleccionar un empleado.")
+                    emp_id = int(emp_id_str)
+                    if emp_id < 1:
+                        raise ValueError("El empleado seleccionado no es válido.")
 
                 if emp_id not in ids_permitidos:
                     raise PermissionError("No tienes permiso para registrar horas de este empleado.")
-                if rol_actual == "EMPLEADO" and proy_id not in perm_repo.ids_proyectos_de_empleado(emp_sesion_id):
-                    raise PermissionError("Solo puedes registrar horas en proyectos donde participas.")
-                if not fecha_str or not descripcion or horas_val < 0:
-                    raise ValueError("Datos inválidos para el registro de horas.")
+
+                proyectos_del_empleado = perm_repo.ids_proyectos_de_empleado(emp_id)
+                if proy_id not in proyectos_del_empleado:
+                    raise ValueError("El empleado no está asignado al proyecto seleccionado.")
 
                 fecha_fmt = datetime.strptime(fecha_str, "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
                 registro = RegistroTiempo(fecha_fmt, horas_val, descripcion, emp_id, proy_id)

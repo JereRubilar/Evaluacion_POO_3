@@ -13,8 +13,14 @@ class Empleado(ABC):
         self.salario = salario
 
     def validar(self):
-        if not self.nombre or "@" not in self.correo:
-            raise ValueError("nombre y correo válido son obligatorios.")
+        nombre_limpio = (self.nombre or "").strip()
+        correo_limpio = (self.correo or "").strip()
+
+        if not nombre_limpio or not any(ch.isalpha() for ch in nombre_limpio):
+            raise ValueError("El nombre debe contener letras y no puede ser solo números.")
+
+        if "@" not in correo_limpio or "." not in correo_limpio.split("@")[-1]:
+            raise ValueError("Debes ingresar un correo electrónico válido.")
 
     def __str__(self):
         return f"[ID: {self.id}] Nombre: {self.nombre} - Dirección: {self.direccion} - Telefono {self.telefono} - Correo: {self.correo} - Salario: {self.salario} - Inicio de contrato: {self.fecha_inicio_contrato}\n"
