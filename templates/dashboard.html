@@ -3,4 +3,414 @@
 {% block content %}
 <h1>Panel de {{ session.get("rol") }}</h1>
 <p>Has iniciado sesión como <strong>{{ session.get("nombre") }}</strong> (@{{ session.get("username") }}).</p>
+
+<hr>
+
+<h2>Clima Operativo</h2>
+<form method="post" action="{{ url_for('dashboard') }}" id="form-clima"
+    data-ciudad-actual="{{ resultado_clima.ciudad if resultado_clima else '' }}" autocomplete="off"
+    style="position: relative; max-width: 420px;">
+    <input type="hidden" name="accion" value="clima">
+    <label for="input-ciudad">Ciudad:</label>
+    <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+        <input type="text" id="input-ciudad" name="ciudad" value="{{ form_clima.ciudad }}"
+            placeholder="Escribe una ciudad..." required style="flex: 1;">
+        <button type="submit">Actualizar</button>
+    </div>
+    <ul id="lista-sugerencias"
+        style="display:none; position:absolute; left:0; right:0; top:100%; background:#fff; border:1px solid #cbd5e1; border-radius:6px; list-style:none; margin:4px 0 0; padding:0; z-index:20; box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+    </ul>
+</form>
+
+<div id="error-clima" style="display:none; margin-top:0.6rem; color:#b91c1c; font-size:0.9rem;"></div>
+
+{% if resultado_clima %}
+<div id="resultado-clima-box"
+    style="margin-top: 1rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+    <h3 id="clima-titulo" style="margin-top: 0;">{{ resultado_clima.ciudad }}{% if resultado_clima.pais %}, {{
+        resultado_clima.pais }}{% endif %}</h3>
+    <p id="clima-actual" style="margin: 0.25rem 0;">
+        <strong>Ahora:</strong> {{ resultado_clima.temperatura_c }} °C — {{ resultado_clima.estado_clima }}
+        (Humedad: {{ resultado_clima.humedad_pct }}%)
+    </p>
+    <div id="clima-pronostico"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 0.9rem;">
+        {% for dia in resultado_clima.pronostico %}
+        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.65rem 0.8rem;">
+            <strong>{{ dia.etiqueta }}</strong> <small style="color:#64748b;">({{ dia.fecha }})</small><br>
+            <span>{{ dia.estado }}</span><br>
+            <small>Mín: <strong>{{ dia.temp_min }}°C</strong> / Máx: <strong>{{ dia.temp_max }}°C</strong></small>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div id="resultado-clima-box"
+    style="display:none; margin-top: 1rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+    <h3 id="clima-titulo" style="margin-top: 0;"></h3>
+    <p id="clima-actual" style="margin: 0.25rem 0;"></p>
+    <div id="clima-pronostico"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 0.9rem;">
+    </div>
+</div>
+{% endif %}
+
+<hr>
+
+<h2>Tipo de Cambio y Conversión</h2>
+<div id="widget-moneda"
+    style="max-width: 460px; padding: 1.1rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+
+    <div id="error-moneda" style="display:none; margin-bottom:0.65rem; color:#b91c1c; font-size:0.88rem;"></div>
+
+    {% if resultado_moneda %}
+    <div id="resultado-moneda-box" style="margin-bottom: 0.9rem;">
+        <div id="moneda-subtitulo" style="font-size: 0.85rem; color: #64748b;">
+            {{ resultado_moneda.monto_origen }} {{ resultado_moneda.moneda_origen }} equivale a
+        </div>
+        <div id="moneda-principal" style="font-size: 1.65rem; font-weight: 700; color: #0f172a; line-height: 1.2;">
+            {{ resultado_moneda.monto_convertido }} {{ resultado_moneda.moneda_destino }}
+        </div>
+        <div id="moneda-tasa" style="font-size: 0.8rem; color: #475569; margin-top: 0.25rem;">
+            1 {{ resultado_moneda.moneda_origen }} = {{ resultado_moneda.tasa }} {{ resultado_moneda.moneda_destino }}
+            {% if resultado_moneda.fecha %} · <span style="color:#64748b;">{{ resultado_moneda.fecha }}</span>{% endif
+            %}
+        </div>
+    </div>
+    {% else %}
+    <div id="resultado-moneda-box" style="display:none; margin-bottom: 0.9rem;">
+        <div id="moneda-subtitulo" style="font-size: 0.85rem; color: #64748b;"></div>
+        <div id="moneda-principal" style="font-size: 1.65rem; font-weight: 700; color: #0f172a; line-height: 1.2;">
+        </div>
+        <div id="moneda-tasa" style="font-size: 0.8rem; color: #475569; margin-top: 0.25rem;"></div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('dashboard') }}" id="form-moneda">
+        <input type="hidden" name="accion" value="moneda">
+
+        <div
+            style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: end; margin-bottom: 0.65rem;">
+            <div>
+                <label for="select-origen"
+                    style="display:block; font-size:0.8rem; color:#475569; margin-bottom:0.2rem;">De</label>
+                <select id="select-origen" name="moneda_origen"
+                    style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc;">
+                    {% for codigo, etiqueta in monedas_disponibles %}
+                    <option value="{{ codigo }}" {% if form_moneda.origen==codigo %}selected{% endif %}>{{ etiqueta }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="button" id="btn-invertir-moneda" title="Invertir monedas"
+                style="padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; cursor:pointer; font-weight:600;">
+                ⇄
+            </button>
+
+            <div>
+                <label for="select-destino"
+                    style="display:block; font-size:0.8rem; color:#475569; margin-bottom:0.2rem;">A</label>
+                <select id="select-destino" name="moneda_destino"
+                    style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc;">
+                    {% for codigo, etiqueta in monedas_disponibles %}
+                    <option value="{{ codigo }}" {% if form_moneda.destino==codigo %}selected{% endif %}>{{ etiqueta }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" name="monto" value="{{ form_moneda.monto }}" placeholder="Monto (ej. 1000)" required
+                style="flex: 1; padding: 0.45rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit"
+                style="padding: 0.48rem 0.9rem; border: none; border-radius: 6px; background: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer;">
+                Convertir
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const inputCiudad = document.getElementById("input-ciudad");
+        const listaSugerencias = document.getElementById("lista-sugerencias");
+        const formClima = document.getElementById("form-clima");
+        const errorClima = document.getElementById("error-clima");
+        const cajaClima = document.getElementById("resultado-clima-box");
+        const tituloClima = document.getElementById("clima-titulo");
+        const actualClima = document.getElementById("clima-actual");
+        const pronosticoClima = document.getElementById("clima-pronostico");
+
+        let temporizador = null;
+
+        function guardarCiudadLocal(ciudad) {
+            const limpia = (ciudad || "").trim();
+            if (!limpia) return;
+            try {
+                localStorage.setItem("ultima_ciudad_clima", limpia);
+            } catch (e) { }
+        }
+
+        function ocultarSugerencias() {
+            if (!listaSugerencias) return;
+            listaSugerencias.style.display = "none";
+            listaSugerencias.innerHTML = "";
+        }
+
+        function mostrarErrorClima(mensaje) {
+            if (!errorClima) return;
+            errorClima.textContent = mensaje;
+            errorClima.style.display = "block";
+        }
+
+        function limpiarErrorClima() {
+            if (!errorClima) return;
+            errorClima.textContent = "";
+            errorClima.style.display = "none";
+        }
+
+        function renderizarClima(data) {
+            if (!cajaClima || !tituloClima || !actualClima || !pronosticoClima) return;
+            limpiarErrorClima();
+
+            tituloClima.textContent = data.pais ? (data.ciudad + ", " + data.pais) : data.ciudad;
+
+            actualClima.innerHTML = "";
+            const strongAhora = document.createElement("strong");
+            strongAhora.textContent = "Ahora: ";
+            actualClima.appendChild(strongAhora);
+            actualClima.appendChild(
+                document.createTextNode(
+                    data.temperatura_c + " °C — " + data.estado_clima + " (Humedad: " + data.humedad_pct + "%)"
+                )
+            );
+
+            pronosticoClima.innerHTML = "";
+            if (Array.isArray(data.pronostico)) {
+                data.pronostico.forEach(function (dia) {
+                    const card = document.createElement("div");
+                    card.style.background = "#ffffff";
+                    card.style.border = "1px solid #cbd5e1";
+                    card.style.borderRadius = "6px";
+                    card.style.padding = "0.65rem 0.8rem";
+
+                    const strongDia = document.createElement("strong");
+                    strongDia.textContent = dia.etiqueta;
+
+                    const smallFecha = document.createElement("small");
+                    smallFecha.style.color = "#64748b";
+                    smallFecha.textContent = " (" + dia.fecha + ")";
+
+                    const spanEstado = document.createElement("span");
+                    spanEstado.textContent = dia.estado;
+
+                    const smallTemp = document.createElement("small");
+                    smallTemp.innerHTML =
+                        "Mín: <strong>" + dia.temp_min + "°C</strong> / Máx: <strong>" + dia.temp_max + "°C</strong>";
+
+                    card.appendChild(strongDia);
+                    card.appendChild(smallFecha);
+                    card.appendChild(document.createElement("br"));
+                    card.appendChild(spanEstado);
+                    card.appendChild(document.createElement("br"));
+                    card.appendChild(smallTemp);
+
+                    pronosticoClima.appendChild(card);
+                });
+            }
+
+            cajaClima.style.display = "block";
+            guardarCiudadLocal(data.ciudad);
+            if (inputCiudad) {
+                inputCiudad.value = data.ciudad;
+            }
+        }
+
+        function consultarClimaAjax(ciudad) {
+            const limpia = (ciudad || "").trim();
+            if (!limpia) return;
+
+            fetch("/api/clima?ciudad=" + encodeURIComponent(limpia))
+                .then(function (resp) {
+                    return resp.json().then(function (body) {
+                        return { ok: resp.ok && body.ok, body: body };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok) {
+                        mostrarErrorClima((res.body && res.body.error) || "No fue posible actualizar el clima.");
+                        return;
+                    }
+                    renderizarClima(res.body.data);
+                })
+                .catch(function () {
+                    mostrarErrorClima("Error de conexión al consultar el clima.");
+                });
+        }
+
+        if (formClima) {
+            const ciudadInicial = formClima.getAttribute("data-ciudad-actual");
+            if (ciudadInicial) {
+                guardarCiudadLocal(ciudadInicial);
+            }
+
+            formClima.addEventListener("submit", function (e) {
+                e.preventDefault();
+                ocultarSugerencias();
+                if (inputCiudad) {
+                    consultarClimaAjax(inputCiudad.value);
+                }
+            });
+        }
+
+        if (inputCiudad && listaSugerencias) {
+            inputCiudad.addEventListener("input", function () {
+                clearTimeout(temporizador);
+                const texto = inputCiudad.value.trim();
+
+                if (texto.length < 2) {
+                    ocultarSugerencias();
+                    return;
+                }
+
+                temporizador = setTimeout(function () {
+                    fetch("/api/ciudades?q=" + encodeURIComponent(texto))
+                        .then(function (resp) {
+                            if (!resp.ok) throw new Error("Error HTTP");
+                            return resp.json();
+                        })
+                        .then(function (ciudades) {
+                            listaSugerencias.innerHTML = "";
+                            if (!Array.isArray(ciudades) || ciudades.length === 0) {
+                                ocultarSugerencias();
+                                return;
+                            }
+
+                            ciudades.forEach(function (c) {
+                                const li = document.createElement("li");
+                                li.textContent = c.etiqueta;
+                                li.style.padding = "0.5rem 0.75rem";
+                                li.style.cursor = "pointer";
+                                li.style.borderBottom = "1px solid #f1f5f9";
+
+                                li.addEventListener("mouseenter", function () {
+                                    li.style.backgroundColor = "#eff6ff";
+                                });
+                                li.addEventListener("mouseleave", function () {
+                                    li.style.backgroundColor = "#ffffff";
+                                });
+                                li.addEventListener("mousedown", function (e) {
+                                    e.preventDefault();
+                                    inputCiudad.value = c.nombre;
+                                    ocultarSugerencias();
+                                    consultarClimaAjax(c.nombre);
+                                });
+
+                                listaSugerencias.appendChild(li);
+                            });
+
+                            listaSugerencias.style.display = "block";
+                        })
+                        .catch(function () {
+                            ocultarSugerencias();
+                        });
+                }, 250);
+            });
+        }
+
+        document.addEventListener("click", function (e) {
+            if (formClima && !formClima.contains(e.target)) {
+                ocultarSugerencias();
+            }
+        });
+
+        const formMoneda = document.getElementById("form-moneda");
+        const selOrigen = document.getElementById("select-origen");
+        const selDestino = document.getElementById("select-destino");
+        const btnInvertir = document.getElementById("btn-invertir-moneda");
+        const errorMoneda = document.getElementById("error-moneda");
+        const cajaMoneda = document.getElementById("resultado-moneda-box");
+        const subtituloMoneda = document.getElementById("moneda-subtitulo");
+        const principalMoneda = document.getElementById("moneda-principal");
+        const tasaMoneda = document.getElementById("moneda-tasa");
+
+        function mostrarErrorMoneda(mensaje) {
+            if (!errorMoneda) return;
+            errorMoneda.textContent = mensaje;
+            errorMoneda.style.display = "block";
+        }
+
+        function limpiarErrorMoneda() {
+            if (!errorMoneda) return;
+            errorMoneda.textContent = "";
+            errorMoneda.style.display = "none";
+        }
+
+        function convertirMonedaAjax() {
+            if (!formMoneda || !selOrigen || !selDestino) return;
+            const inputMonto = formMoneda.querySelector('input[name="monto"]');
+            const monto = inputMonto ? inputMonto.value.trim() : "";
+            const origen = selOrigen.value;
+            const destino = selDestino.value;
+
+            const url =
+                "/api/convertir-moneda?monto=" +
+                encodeURIComponent(monto) +
+                "&origen=" +
+                encodeURIComponent(origen) +
+                "&destino=" +
+                encodeURIComponent(destino);
+
+            fetch(url)
+                .then(function (resp) {
+                    return resp.json().then(function (body) {
+                        return { ok: resp.ok && body.ok, body: body };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok) {
+                        mostrarErrorMoneda((res.body && res.body.error) || "No fue posible convertir la moneda.");
+                        return;
+                    }
+                    limpiarErrorMoneda();
+                    const d = res.body.data;
+                    if (subtituloMoneda) {
+                        subtituloMoneda.textContent = d.monto_origen + " " + d.moneda_origen + " equivale a";
+                    }
+                    if (principalMoneda) {
+                        principalMoneda.textContent = d.monto_convertido + " " + d.moneda_destino;
+                    }
+                    if (tasaMoneda) {
+                        const fechaTxt = d.fecha ? " · " + d.fecha : "";
+                        tasaMoneda.textContent =
+                            "1 " + d.moneda_origen + " = " + d.tasa + " " + d.moneda_destino + fechaTxt;
+                    }
+                    if (cajaMoneda) {
+                        cajaMoneda.style.display = "block";
+                    }
+                })
+                .catch(function () {
+                    mostrarErrorMoneda("Error de conexión al consultar el tipo de cambio.");
+                });
+        }
+
+        if (formMoneda) {
+            formMoneda.addEventListener("submit", function (e) {
+                e.preventDefault();
+                convertirMonedaAjax();
+            });
+        }
+
+        if (btnInvertir && selOrigen && selDestino) {
+            btnInvertir.addEventListener("click", function () {
+                const temp = selOrigen.value;
+                selOrigen.value = selDestino.value;
+                selDestino.value = temp;
+                convertirMonedaAjax();
+            });
+        }
+    })();
+</script>
 {% endblock %}

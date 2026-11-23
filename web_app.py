@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 
 from auth import auth_bp, crear_cuenta_usuario, login_requerido, rol_requerido
 from conexiones import conexion
@@ -14,13 +14,20 @@ from repositorios import (
     ProyectoRepositorio,
     RegistroTiempoRepositorio,
 )
+from servicios_externos import (
+    ServicioExternoError,
+    obtener_monedas_disponibles,
+    convertir_moneda,
+    obtener_clima_ciudad,
+    buscar_sugerencias_ciudades
+)
 
 load_dotenv()
 
 
 def crear_app():
     app = Flask(__name__)
-    app.secret_key = os.getenv("FLASK_SECRET_KEY", "FlaskPrueba123!")
+    app.secret_key = os.getenv("FLASK_KEY", "FlaskPrueba123!")
     app.register_blueprint(auth_bp)
 
     emp_repo = EmpleadoRepositorio()
@@ -35,10 +42,107 @@ def crear_app():
             return redirect(url_for("dashboard"))
         return redirect(url_for("auth.login"))
 
-    @app.route("/dashboard")
+    @app.route("/api/ciudades")
+    @login_requerido
+    def api_sugerencias_ciudades():
+        q = request.args.get("q", "").strip()
+        try:
+            sugerencias = buscar_sugerencias_ciudades(q)
+            return jsonify(sugerencias)
+        except ServicioExternoError:
+            return jsonify([])
+        
+    @app.route("/api/clima")
+    @login_requerido
+    def api_clima():
+        ciudad = request.args.get("ciudad", "").strip()
+        try:
+            datos = obtener_clima_ciudad(ciudad)
+            session["ultima_ciudad"] = datos["ciudad"]
+            return jsonify({"ok": True, "data": datos})
+        except ServicioExternoError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        except Exception:
+            return jsonify({"ok": False, "error": "Ocurrió un error inesperado al consultar el clima."}), 500
+
+    @app.route("/api/convertir-moneda")
+    @login_requerido
+    def api_convertir_moneda():
+        monto = request.args.get("monto", "").strip()
+        origen = request.args.get("origen", "USD").strip().upper()
+        destino = request.args.get("destino", "CLP").strip().upper()
+        try:
+            datos = convertir_moneda(monto, origen, destino)
+            return jsonify({"ok": True, "data": datos})
+        except ServicioExternoError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        except Exception:
+            return jsonify({"ok": False, "error": "Ocurrió un error inesperado al convertir la moneda."}), 500
+
+    @app.route("/dashboard", methods=["GET", "POST"])
     @login_requerido
     def dashboard():
-        return render_template("dashboard.html")
+        ciudad_recordada = session.get("ultima_ciudad", "Santiago")
+        resultado_clima = None
+        resultado_moneda = None
+        form_clima = {"ciudad": ciudad_recordada}
+        form_moneda = {"monto": "1", "origen": "USD", "destino": "CLP"}
+        
+
+        if request.method == "POST":
+            accion = request.form.get("accion", "").strip()
+
+            if accion == "clima":
+                ciudad = request.form.get("ciudad", "").strip()
+                form_clima["ciudad"] = ciudad
+                try:
+                    resultado_clima = obtener_clima_ciudad(ciudad)
+                    ciudad_recordada = resultado_clima["ciudad"]
+                    session["ultima_ciudad"] = ciudad_recordada
+                    form_clima["ciudad"] = ciudad_recordada
+                except ServicioExternoError as exc:
+                    flash(str(exc), "error")
+                except Exception:
+                    flash("Ocurrió un error inesperado al consultar el clima.", "error")
+
+            elif accion == "moneda":
+                monto = request.form.get("monto", "").strip()
+                origen = request.form.get("moneda_origen", "CLP").strip().upper()
+                destino = request.form.get("moneda_destino", "USD").strip().upper()
+                form_moneda = {"monto": monto, "origen": origen, "destino": destino}
+
+                if resultado_moneda is None:
+                    try:
+                        resultado_moneda = convertir_moneda(
+                            form_moneda["monto"],
+                            form_moneda["origen"],
+                            form_moneda["destino"],
+                        )
+                    except ServicioExternoError:
+                        resultado_moneda = None
+
+        if resultado_clima is None:
+            try:
+                resultado_clima = obtener_clima_ciudad(ciudad_recordada)
+            except ServicioExternoError:
+                resultado_clima = None
+
+        try:
+            monedas_disponibles = obtener_monedas_disponibles()
+        except ServicioExternoError:
+            monedas_disponibles = [
+                ("CLP", "CLP — Peso Chileno"),
+                ("USD", "USD — Dólar Estadounidense"),
+            ]
+
+        return render_template(
+            "dashboard.html",
+            resultado_clima=resultado_clima,
+            resultado_moneda=resultado_moneda,
+            monedas_disponibles=monedas_disponibles,
+            form_clima=form_clima,
+            form_moneda=form_moneda,
+        )
 
     @app.route("/usuarios/nuevo", methods=["GET", "POST"])
     @rol_requerido("ADMIN")
@@ -383,4 +487,5 @@ def crear_app():
 
 if __name__ == "__main__":
     app = crear_app()
-    app.run(debug=True)
+    modo_debug = os.getenv("FLASK_DEBUG", "false").strip().lower() in ("1", "true", "yes")
+    app.run(host="127.0.0.1", port=5000, debug=modo_debug)
